@@ -1,11 +1,13 @@
 package com.pasteleriamilsabores.pasteleria.api.exception;
 
+import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
@@ -66,6 +68,18 @@ public class ManejadorErrores {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorApi> argumentoInvalido(IllegalArgumentException ex) {
         return responder(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // 401: login con correo o contraseña incorrectos
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorApi> credencialesIncorrectas(BadCredentialsException ex) {
+        return responder(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
+    }
+
+    // 401: refresh token vencido, alterado o de otro tipo
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ErrorApi> tokenInvalido(JwtException ex) {
+        return responder(HttpStatus.UNAUTHORIZED, "La sesión expiró o el token no es válido");
     }
 
     // 401 y 403 lanzados dentro de los controladores (por ejemplo con @PreAuthorize)

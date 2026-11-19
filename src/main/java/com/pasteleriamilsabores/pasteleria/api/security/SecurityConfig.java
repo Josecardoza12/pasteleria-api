@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -28,10 +29,15 @@ public class SecurityConfig {
 
     private final EntradaNoAutorizada entradaNoAutorizada;
     private final AccesoDenegado accesoDenegado;
+    private final JwtService jwtService;
+    private final UsuarioDetailsService usuarioDetailsService;
 
-    public SecurityConfig(EntradaNoAutorizada entradaNoAutorizada, AccesoDenegado accesoDenegado) {
+    public SecurityConfig(EntradaNoAutorizada entradaNoAutorizada, AccesoDenegado accesoDenegado,
+                          JwtService jwtService, UsuarioDetailsService usuarioDetailsService) {
         this.entradaNoAutorizada = entradaNoAutorizada;
         this.accesoDenegado = accesoDenegado;
+        this.jwtService = jwtService;
+        this.usuarioDetailsService = usuarioDetailsService;
     }
 
     @Bean
@@ -81,13 +87,14 @@ public class SecurityConfig {
                         // Todo lo demás (por ejemplo /auth/me) exige sesión
                         .anyRequest().authenticated());
 
-        // En la S3-07 aquí se agrega el filtro JWT:
-        // http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        // Filtro JWT: lee el token antes del filtro de usuario y contraseña de Spring
+        http.addFilterBefore(new JwtAuthFilter(jwtService, usuarioDetailsService),
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /** Lo usa el login (S3-07) para comprobar correo y contraseña. */
+    /** Lo usa el login para comprobar correo y contraseña (BCrypt). */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuracion) throws Exception {
         return configuracion.getAuthenticationManager();
