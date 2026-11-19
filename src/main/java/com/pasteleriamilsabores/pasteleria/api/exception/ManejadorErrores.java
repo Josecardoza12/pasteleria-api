@@ -3,6 +3,7 @@ package com.pasteleriamilsabores.pasteleria.api.exception;
 import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -40,6 +41,14 @@ public class ManejadorErrores {
         return responder(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    // 409: la base de datos rechazó la operación por una relación
+    // (por ejemplo, eliminar un usuario o producto que ya aparece en boletas)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorApi> datosRelacionados(DataIntegrityViolationException ex) {
+        return responder(HttpStatus.CONFLICT,
+                "No se puede completar la operación porque el registro tiene datos asociados.");
+    }
+
     // 400: falló @Valid; se devuelve un mensaje por cada campo
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorApi> validacion(MethodArgumentNotValidException ex) {
@@ -51,20 +60,27 @@ public class ManejadorErrores {
                 .body(new ErrorApi(400, "Revisa los datos marcados", campos));
     }
 
-    // 400: tipo incorrecto en la ruta, por ejemplo /categorias/abc
+    // 400: un campo puntual inválido revisado en el servicio
+    @ExceptionHandler(CampoInvalidoException.class)
+    public ResponseEntity<ErrorApi> campoInvalido(CampoInvalidoException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorApi(400, "Revisa los datos marcados", Map.of(ex.getCampo(), ex.getMessage())));
+    }
+
+    // 400: tipo incorrecto en la ruta, por ejemplo /categorias/abc o ?rol=jefe
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorApi> tipoIncorrecto(MethodArgumentTypeMismatchException ex) {
         return responder(HttpStatus.BAD_REQUEST,
                 "El valor '" + ex.getValue() + "' no es válido para '" + ex.getName() + "'");
     }
 
-    // 400: el cuerpo no es un JSON válido
+    // 400: el cuerpo no es un JSON válido (o trae un rol que no existe)
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorApi> jsonInvalido(HttpMessageNotReadableException ex) {
         return responder(HttpStatus.BAD_REQUEST, "El cuerpo de la petición no es un JSON válido");
     }
 
-    // 400: reglas de negocio simples (RUN inválido, cupón inválido, etc.)
+    // 400: reglas de negocio simples (cupón inválido, etc.)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorApi> argumentoInvalido(IllegalArgumentException ex) {
         return responder(HttpStatus.BAD_REQUEST, ex.getMessage());
