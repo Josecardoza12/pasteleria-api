@@ -5,7 +5,7 @@ Si algo de este archivo cambia, se anota primero en **Registro de cambios** (al 
 
 | Dato | Valor |
 |---|---|
-| Versión del contrato | 1.0 |
+| Versión del contrato | 1.1 |
 | URL base (desarrollo) | `http://localhost:8080/api/v1` |
 | Swagger | `http://localhost:8080/swagger-ui.html` |
 | Frontend permitido (CORS) | `http://localhost:5173` |
@@ -77,7 +77,7 @@ Las tablas las crea Hibernate a partir de las clases `@Entity` (`ddl-auto=update
 
 ---
 
-## 3. Endpoints (24)
+## 3. Endpoints (25)
 
 | # | Método | Ruta | Acceso | Entrada | Respuestas | Dueño |
 |---|---|---|---|---|---|---|
@@ -96,15 +96,16 @@ Las tablas las crea Hibernate a partir de las clases `@Entity` (`ddl-auto=update
 | 13 | PUT | `/categorias/{id}` | ADMINISTRADOR | CategoriaRequest | 200 · 400 · 404 · 409 | Catalina |
 | 14 | DELETE | `/categorias/{id}` | ADMINISTRADOR | - | 204 · 404 · 409 | Catalina |
 | 15 | GET | `/productos?categoria=` | Pública | - | 200 | Catalina |
-| 16 | GET | `/productos/{codigo}` | Pública | - | 200 · 404 | Catalina |
-| 17 | GET | `/productos/stock-critico` | ADMINISTRADOR, VENDEDOR | - | 200 · 401 · 403 | Catalina |
-| 18 | POST | `/productos` | ADMINISTRADOR | ProductoRequest | 201 · 400 · 409 | Catalina |
-| 19 | PUT | `/productos/{codigo}` | ADMINISTRADOR | ProductoRequest | 200 · 400 · 404 | Catalina |
-| 20 | DELETE | `/productos/{codigo}` | ADMINISTRADOR | - | 204 · 404 · 409 | Catalina |
-| 21 | POST | `/boletas` | CLIENTE | BoletaRequest | 201 · 400 · 401 · 403 · 404 · 409 | Juan |
-| 22 | GET | `/boletas/mias` | CLIENTE | - | 200 · 401 | Juan |
-| 23 | GET | `/boletas` | ADMINISTRADOR, VENDEDOR | - | 200 · 401 · 403 | Juan |
-| 24 | GET | `/boletas/{id}` | ADMINISTRADOR, VENDEDOR o el cliente dueño | - | 200 · 403 · 404 | Juan |
+| 16 | GET | `/productos/{id}` | Pública | - | 200 · 400 · 404 | Catalina |
+| 17 | GET | `/productos/codigo/{codigo}` | Pública | - | 200 · 404 | Catalina |
+| 18 | GET | `/productos/stock-critico` | ADMINISTRADOR, VENDEDOR | - | 200 · 401 · 403 | Catalina |
+| 19 | POST | `/productos` | ADMINISTRADOR | ProductoRequest | 201 · 400 · 409 | Catalina |
+| 20 | PUT | `/productos/{id}` | ADMINISTRADOR | ProductoRequest | 200 · 400 · 404 · 409 | Catalina |
+| 21 | DELETE | `/productos/{id}` | ADMINISTRADOR | - | 204 · 404 · 409 | Catalina |
+| 22 | POST | `/boletas` | CLIENTE | BoletaRequest | 201 · 400 · 401 · 403 · 404 · 409 | Juan |
+| 23 | GET | `/boletas/mias` | CLIENTE | - | 200 · 401 | Juan |
+| 24 | GET | `/boletas` | ADMINISTRADOR, VENDEDOR | - | 200 · 401 · 403 | Juan |
+| 25 | GET | `/boletas/{id}` | ADMINISTRADOR, VENDEDOR o el cliente dueño | - | 200 · 403 · 404 | Juan |
 
 Cada dueño programa sus endpoints, los documenta en Swagger (`@Tag` y `@Operation`), escribe sus pruebas y entrega sus filas para la planilla de APIs (Anexo 3).
 
@@ -226,6 +227,9 @@ Categorías iniciales (las mismas del catálogo de la Ev2):
 }
 ```
 - Filtro: `GET /productos?categoria=cuadradas`. Sin el parámetro devuelve todos.
+- Rutas por **id** (número de MySQL): `GET`, `PUT` y `DELETE /productos/{id}`. El panel de administración usa el `id` que viene en cada producto.
+- Ruta por **código**: `GET /productos/codigo/{codigo}` (por ejemplo `/productos/codigo/TC001`). La usa el detalle de la tienda, porque la URL del frontend sigue siendo `/producto/:codigo`.
+- Un id con letras (`/productos/abc`) responde 400.
 - Los 16 productos iniciales son los de `src/datos/productos.js` del frontend (TC001, TC002, TT001, TT002, PI001, PI002, PSA001, PSA002, PT001, PT002, PG001, PG002, PV001, PV002, TE001, TE002).
 - Las imágenes se quedan en `public/img` del frontend; la API solo guarda la ruta.
 
@@ -305,3 +309,4 @@ Nunca se guarda la contraseña. Ante un 401, axios intenta una vez `POST /auth/r
 | Fecha | Versión | Cambio | Quién |
 |---|---|---|---|
 | 19-11-2026 | 1.0 | Contrato inicial | José Cardoza |
+| 20-11-2026 | 1.1 | Productos: `GET`, `PUT` y `DELETE` pasan a usar `/productos/{id}`; se agrega `GET /productos/codigo/{codigo}` para buscar por código. Total: 25 endpoints. Se ajusta al código implementado en C3-04. | José Cardoza (acordado con Catalina Díaz) |
