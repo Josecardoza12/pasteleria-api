@@ -9,6 +9,8 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
 
     Optional<Categoria> findBySlug(String slug);
 
+    Optional<Categoria> findByNombre(String nombre);
+
     boolean existsBySlug(String slug);
 
     boolean existsByNombre(String nombre);
