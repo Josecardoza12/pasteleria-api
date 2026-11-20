@@ -1,8 +1,11 @@
+
 package com.pasteleriamilsabores.pasteleria.api.config;
 
 import com.pasteleriamilsabores.pasteleria.api.model.Rol;
 import com.pasteleriamilsabores.pasteleria.api.model.Usuario;
+import com.pasteleriamilsabores.pasteleria.api.model.Categoria;
 import com.pasteleriamilsabores.pasteleria.api.repository.UsuarioRepository;
+import com.pasteleriamilsabores.pasteleria.api.repository.CategoriaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -22,16 +25,19 @@ public class DatosIniciales implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CategoriaRepository categoriaRepository;
 
-    public DatosIniciales(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public DatosIniciales(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+                          CategoriaRepository categoriaRepository) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.categoriaRepository = categoriaRepository;
     }
 
     @Override
     public void run(String... args) {
         cargarUsuarios();
-        // cargarCategorias();  -> Catalina (C3-01)
+        cargarCategorias();
         // cargarProductos();   -> Catalina (C3-02)
     }
 
@@ -53,5 +59,23 @@ public class DatosIniciales implements CommandLineRunner {
                         Rol.CLIENTE)
         ));
         log.info("Usuarios iniciales cargados: 3 (admin, vendedor y cliente)");
+    }
+
+    // ---------- Categorías (Catalina, C3-01) ----------
+    private void cargarCategorias() {
+        if (categoriaRepository.count() > 0) {
+            return;
+        }
+        categoriaRepository.saveAll(List.of(
+                new Categoria("cuadradas", "Tortas Cuadradas"),
+                new Categoria("circulares", "Tortas Circulares"),
+                new Categoria("individuales", "Postres Individuales"),
+                new Categoria("sin-azucar", "Sin Azúcar"),
+                new Categoria("tradicional", "Tradicional"),
+                new Categoria("sin-gluten", "Sin Gluten"),
+                new Categoria("veganos", "Veganos"),
+                new Categoria("especiales", "Tortas Especiales")
+        ));
+        log.info("Categorías iniciales cargadas: 8");
     }
 }
