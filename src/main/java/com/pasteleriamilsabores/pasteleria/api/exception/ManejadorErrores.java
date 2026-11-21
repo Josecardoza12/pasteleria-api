@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -122,6 +123,25 @@ public class ManejadorErrores {
         log.error("Error no controlado", ex);
         return responder(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error inesperado en el servidor");
     }
+
+    // Excepciones HTTP con mensajes definidos por los servicios
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorApi> respuestaPersonalizada(
+            ResponseStatusException ex
+    ) {
+        HttpStatus status = HttpStatus.valueOf(
+                ex.getStatusCode().value()
+        );
+
+        String mensaje = ex.getReason();
+
+        if (mensaje == null || mensaje.isBlank()) {
+            mensaje = status.getReasonPhrase();
+        }
+
+        return responder(status, mensaje);
+    }
+
 
     private ResponseEntity<ErrorApi> responder(HttpStatus status, String mensaje) {
         return ResponseEntity.status(status).body(ErrorApi.de(status.value(), mensaje));

@@ -1,5 +1,4 @@
-
-package com.pasteleriamilsabores.pasteleria.api.service;
+ package com.pasteleriamilsabores.pasteleria.api.service;
 
 import com.pasteleriamilsabores.pasteleria.api.dto.BoletaRequest;
 import com.pasteleriamilsabores.pasteleria.api.dto.BoletaResponse;
@@ -19,10 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class BoletaService {
@@ -68,7 +70,7 @@ public class BoletaService {
 
         if (autenticacion == null
                 || !autenticacion.isAuthenticated()
-                || autenticacion.getName().equals("anonymousUser")) {
+                || "anonymousUser".equals(autenticacion.getName())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Debes iniciar sesión para comprar."
@@ -194,4 +196,98 @@ public class BoletaService {
                 respuestaDetalles
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<BoletaResponse> listarMias() {
+        Authentication autenticacion = obtenerAutenticacion();
+
+        return boletaRepository
+                .findByUsuarioCorreoOrderByFechaDesc(
+                        autenticacion.getName()
+                )
+                .stream()
+                .map(this::convertirRespuesta)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoletaResponse> listarTodas() {
+        return boletaRepository.findAllByOrderByFechaDesc()
+                .stream()
+                .map(this::convertirRespuesta)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BoletaResponse buscarPorId(Long id) {
+        Authentication autenticacion = obtenerAutenticacion();
+
+        Boleta boleta = boletaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No existe la boleta solicitada."
+                ));
+
+        boolean esPersonal = autenticacion.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(rol ->
+                        "ROLE_ADMINISTRADOR".equals(rol)
+                                || "ROLE_VENDEDOR".equals(rol)
+                );
+
+        boolean esDueno = Objects.equals(
+                boleta.getUsuario().getCorreo(),
+                autenticacion.getName()
+        );
+
+        if (!esPersonal && !esDueno) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No tienes permiso para consultar esta boleta."
+            );
+        }
+
+        return convertirRespuesta(boleta);
+    }
+
+    private Authentication obtenerAutenticacion() {
+        Authentication autenticacion =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (autenticacion == null
+                || !autenticacion.isAuthenticated()
+                || "anonymousUser".equals(autenticacion.getName())) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Debes iniciar sesión."
+            );
+        }
+
+        return autenticacion;
+    }
+
+    private BoletaResponse convertirRespuesta(Boleta boleta) {
+        List<BoletaResponse.Detalle> detalles = boleta
+                .getDetalles()
+                .stream()
+                .map(detalle -> new BoletaResponse.Detalle(
+                        detalle.getProducto().getCodigo(),
+                        detalle.getProducto().getNombre(),
+                        detalle.getCantidad(),
+                        detalle.getPrecioUnitario(),
+                        detalle.getSubtotal()
+                ))
+                .toList();
+
+        return new BoletaResponse(
+                boleta.getId(),
+                boleta.getFecha(),
+                boleta.getSubtotal(),
+                boleta.getDescuento(),
+                boleta.getTotal(),
+                detalles
+        );
+    }
+
 }
